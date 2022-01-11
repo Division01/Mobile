@@ -23,7 +23,7 @@ emojis = {
 
 
 def Filtreur(face_cascade, MODEL, MODEL_MASK, img):
-    print("Appel au filtreur")
+    #print("Appel au filtreur")
     faces = faceDetector.detect_faces(img, face_cascade)
     if faces is not None:
         for item in faces:
@@ -41,7 +41,6 @@ def Filtreur(face_cascade, MODEL, MODEL_MASK, img):
             if item[3] is not None:
                 
                 emoji = Image.fromarray(emoji)
-                
                 emoji = np.array(emoji.rotate(int(-item[3])))
 
             # formatte l'emoji exactement à la taille de la tête détectée

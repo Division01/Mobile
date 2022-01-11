@@ -1,46 +1,58 @@
-from kivy.app import App 
-from kivy.uix.camera import Camera
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
+from kivymd.app import MDApp 
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.button import MDRaisedButton
+from kivy.uix.image import Image
+from kivy.graphics.texture import Texture
+from kivy.clock import Clock
+from kivymd.uix.label import MDLabel
 import cv2
-import numpy as np
 import moodDetector
 import pasMain
 from keras.models import load_model 
 
-class SelfieCameraApp(App):
+class MainApp(MDApp):
 
     def build(self):
         self.bool_filtr = False
-        self.camera_obj = Camera()
 
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_alt2.xml')
         self.MODEL = moodDetector.loadModel()
         self.MODEL_MASK = load_model("./data/mask_detector.model")
 
-        # button 
-        button_obj = Button(text = "Click here")
-        button_obj.size_hint = (.5, .2)
-        button_obj.pos_hint = {'x' : .25, 'y' : .25}
-        button_obj.bind(on_press= self.filtray)
-
         #Layout
-        layout = BoxLayout()
-        layout.add_widget(self.camera_obj)
-        layout.add_widget(button_obj)
-        
+        layout = MDBoxLayout()
+        self.image = Image()
+        self.label = MDLabel()
+        layout.add_widget(self.image)
+        layout.add_widget(self.label)
+        self.filter_button = MDRaisedButton(
+            text = "Filter",
+            pos_hint={'center_x': .5, 'center_y': .5},
+            size_hint=(None, None))
+        self.filter_button.bind(on_press=self.filtray)
+        layout.add_widget(self.filter_button)
+        self.capture = cv2.VideoCapture(0)
+        Clock.schedule_interval(self.load_video, 1.0/30.0)
         return layout
 
-    def _on_config_change(self, *largs):
-        return super()._on_config_change(*largs)
-        return super().on_resume()        print("in")
-        self.camera_obj.texture.add_reload_observer(self.test)
-
-        return super().on_resume()
-
-
-    def test(self, texture):
-        print("in")
+    def load_video(self, *args):
+        if self.bool_filtr : 
+            ret, frame = self.capture.read()
+            # Frame initialize
+            self.image_frame = frame
+            self.image_frame = pasMain.Filtreur(self.face_cascade, self.MODEL, self.MODEL_MASK, frame)
+            buffer = cv2.flip(frame, 0).tostring()
+            texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
+            texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
+            self.image.texture = texture
+        else : 
+            ret, frame = self.capture.read()
+            # Frame initialize
+            self.image_frame = frame
+            buffer = cv2.flip(frame, 0).tostring()
+            texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
+            texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
+            self.image.texture = texture
 
     def filtray(self, *args):
         if self.bool_filtr == True :
@@ -50,16 +62,7 @@ class SelfieCameraApp(App):
         elif self.bool_filtr == False :
             print("Maintenant ça filtre je crois")
             self.bool_filtr = True
-        print(self.camera_obj.texture)
-        #cv2.imshow('img',self.camera_obj.texture)
 
 
 if __name__ == '__main__':
-    a = SelfieCameraApp()
-    a.run()
-    
-    print(a.bool_filtr)
-    if SelfieCameraApp.bool_filtr :
-        print(SelfieCameraApp.bool_filtr)
-        SelfieCameraApp.camera_obj = pasMain.Filtreur(SelfieCameraApp.face_cascade, SelfieCameraApp.MODEL, SelfieCameraApp.MODEL_MASK, SelfieCameraApp.camera_obj)
-    
+    MainApp().run()
